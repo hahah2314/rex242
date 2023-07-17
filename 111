@@ -1,0 +1,66 @@
+--[[
+    site2executor - by doroz
+--]]
+
+local key = _G.key
+local request = request or syn.request
+local host = "https://realredxpanel.bloxfart.repl.co"
+local httpService = game:GetService("HttpService")
+local heartbeating = true
+local JSON = {
+	parse = function(str)
+		return httpService:JSONDecode(str)
+	end,
+	stringify = function(tab)
+		return httpService:JSONEncode(tab)
+	end
+}
+
+
+local c_response = request({
+	Url = host.."/connect",
+	Method = "POST",
+	Body = JSON.stringify({key = key}),
+	Headers = {["Content-Type"] = "application/json"}
+})
+
+if c_response.StatusCode == 200 then
+
+	task.spawn(function()
+		while heartbeating do
+			task.wait()
+			local s_response = request({
+				Url = host.."/queue-script?key="..key,
+				Method = "GET"
+			})
+			if s_response.StatusCode == 200 then
+				local body = JSON.parse(s_response.Body)
+				local s, e = pcall(function()
+            loadstring(body.script)()    
+        end)
+        if not s then
+            warn("erur "..e)
+        end
+			end
+		end
+	end) -- main thread
+	task.spawn(function()
+		while true do
+			task.wait(3.5)
+		
+			local s_response = request({
+				Url = host.."/heartbeat",
+				Method = "POST",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = JSON.stringify({key = key})
+			})
+			if not s_response.Success then
+				print("[s2e] Heartbeat failed..")
+				heartbeating = false
+				break
+			end
+		end
+	end) -- heartbeat thread
+else
+
+end
