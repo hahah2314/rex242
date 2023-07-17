@@ -1,7 +1,3 @@
---[[
-    site2executor - by doroz
---]]
-
 local key = _G.key
 local request = request or syn.request
 local host = "https://realredxpanel.bloxfart.repl.co"
